@@ -441,7 +441,7 @@
 
     <div class="drawer-section">
       <h3>WhatsApp</h3>
-      <p class="drawer-hint">Ricevi su WhatsApp il promemoria a 9 giorni dall'evento e il giorno della consegna.</p>
+      <p class="drawer-hint">Ricevi su WhatsApp un promemoria ogni giorno da 9 giorni prima dell'evento (9, 8, 7... fino a 1) e un avviso il giorno della consegna.</p>
       <div class="field"><label>Numero (con prefisso, es. 39...)</label><input type="text" id="wa-numero" placeholder="393277850098"></div>
       <div class="field"><label>ApiKey CallMeBot</label><input type="text" id="wa-apikey" placeholder="Es. 123456"></div>
       <div class="drawer-btn-row">
@@ -876,12 +876,19 @@ function checkNotifications(){
   if(!browserOk && !waOk) return;
   events.forEach(ev => {
     const d = daysUntil(ev.data);
-    if(d === 9){
-      const key = 'ordine9:' + ev.id + ':' + ev.data;
+    if(d >= 1 && d <= 9){
+      const key = 'countdown' + d + ':' + ev.id + ':' + ev.data;
       if(!notifiedSet.has(key)){
-        const msg = `Tra 9 giorni è il ${TYPE_LABELS[ev.tipo].toLowerCase()} di ${ev.cliente}: è il momento di ordinare.`;
-        if(browserOk) sendNotification('Ordine fiori da fare', msg);
-        if(waOk) sendWhatsApp(`🌸 Promemoria ordine — ${msg}`);
+        let msg, title;
+        if(d === 9){
+          title = 'Ordine fiori da fare';
+          msg = `Tra 9 giorni è il ${TYPE_LABELS[ev.tipo].toLowerCase()} di ${ev.cliente}: è il momento di ordinare.`;
+        } else {
+          title = 'Promemoria evento';
+          msg = `Mancano ${d} giorni al ${TYPE_LABELS[ev.tipo].toLowerCase()} di ${ev.cliente}.`;
+        }
+        if(browserOk) sendNotification(title, msg);
+        if(waOk) sendWhatsApp(`🌸 ${msg}`);
         markNotified(key);
       }
     }
