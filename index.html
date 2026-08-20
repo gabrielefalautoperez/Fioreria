@@ -944,9 +944,13 @@ function orderStatus(ev){
   return ev.ordini.every(o => o.stato === 'ricevuto') ? 'completo' : 'incompleto';
 }
 
+function needsOrderAttention(ev){
+  return orderStatus(ev) !== 'completo';
+}
+
 function urgencyClass(ev){
   const d = daysUntil(ev.data);
-  const complete = orderStatus(ev) === 'completo' || orderStatus(ev) === 'vuoto';
+  const complete = orderStatus(ev) === 'completo';
   if(d < 0) return 'past';
   if(complete) return 'ready';
   if(d <= 3) return 'urgent';
@@ -998,7 +1002,7 @@ function renderAlerts(){
 
   const upcoming = events
     .map(ev => ({ev, d: daysUntil(ev.data)}))
-    .filter(x => x.d >= 1 && x.d <= 7 && orderStatus(x.ev) === 'incompleto')
+    .filter(x => x.d >= 1 && x.d <= 8 && needsOrderAttention(x.ev))
     .sort((a,b) => a.d - b.d);
 
   html += `<p class="alerts-title">Avvisi — ordini da completare</p>`;
@@ -1008,8 +1012,9 @@ function renderAlerts(){
     html += upcoming.map(x => {
       const cls = x.d <= 3 ? '' : 'warn';
       const dayLabel = x.d === 1 ? '1 giorno' : x.d + ' giorni';
+      const statusLabel = orderStatus(x.ev) === 'vuoto' ? 'ordine non ancora iniziato' : 'ordine non completo';
       return `<div class="alert-tag ${cls}">
-        <span><b>${escapeHtml(x.ev.cliente)}</b> — ${TYPE_LABELS[x.ev.tipo]}, ordine non completo</span>
+        <span><b>${escapeHtml(x.ev.cliente)}</b> — ${TYPE_LABELS[x.ev.tipo]}, ${statusLabel}</span>
         <span class="days">${dayLabel}</span>
       </div>`;
     }).join('');
