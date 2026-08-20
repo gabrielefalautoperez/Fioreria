@@ -301,6 +301,32 @@
   .catalog-info .cat-desc{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0;}
   .catalog-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 
+  .photo-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .photo-thumb{
+    position:relative;width:84px;height:84px;border-radius:6px;overflow:hidden;
+    border:1px solid var(--line);flex-shrink:0;
+  }
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+  .photo-remove{
+    position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;
+    background:rgba(40,35,25,0.65);color:#fff;border:none;font-size:14px;line-height:1;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .photo-add{
+    width:84px;height:84px;border-radius:6px;border:1.5px dashed var(--line);
+    background:var(--ivory);color:var(--green-deep);cursor:pointer;flex-shrink:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-size:10px;font-family:'Work Sans',sans-serif;text-align:center;padding:4px;
+  }
+  .photo-add:hover{background:var(--green-pale);}
+
+  .photo-viewer-overlay{
+    display:none;position:fixed;inset:0;background:rgba(20,17,12,0.9);
+    z-index:70;align-items:center;justify-content:center;padding:24px;
+  }
+  .photo-viewer-overlay.show{display:flex;}
+  .photo-viewer-overlay img{max-width:100%;max-height:100%;border-radius:6px;object-fit:contain;}
+
   .budget-row{
     display:flex;flex-wrap:wrap;gap:16px;background:var(--gold-pale);border-radius:4px;
     padding:10px 14px;margin-bottom:14px;font-size:13px;
@@ -554,6 +580,12 @@
       <button class="btn-primary" onclick="saveCatalog()">Salva catalogo</button>
     </div>
   </div>
+</div>
+
+<input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelected(this)">
+
+<div class="photo-viewer-overlay" id="photoViewerOverlay" onclick="closePhotoViewer()">
+  <img id="photoViewerImg" src="" alt="Foto di riferimento">
 </div>
 
 <script>
@@ -1162,6 +1194,18 @@ function renderList(){
           </div>`;
         })() : ''}
         ${ev.note ? `<div class="note-block"><b style="color:var(--ink)">Richieste del cliente:</b><br>${escapeHtml(ev.note)}</div>` : ''}
+        <p class="order-title">Foto di riferimento (rendering)</p>
+        <div class="photo-grid">
+          ${(ev.foto || []).map(f => `
+            <div class="photo-thumb">
+              <img src="${f.data}" onclick="openPhotoViewer('${f.data.replace(/'/g, "\\'")}')" alt="Riferimento evento">
+              <button class="photo-remove" onclick="removePhoto('${ev.id}','${f.id}')" aria-label="Rimuovi foto">&times;</button>
+            </div>`).join('')}
+          <button class="photo-add" onclick="triggerPhotoUpload('${ev.id}')">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Aggiungi foto</span>
+          </button>
+        </div>
         <p class="order-title">Ordine fiori e materiali</p>
         <div class="table-scroll">
         <table class="orders">
@@ -1239,6 +1283,70 @@ function updateItem(evId, itemId, field, value){
   item[field] = value;
   persist(); render();
   setTimeout(() => document.getElementById('card-' + evId).classList.add('open'), 0);
+}
+
+// ---- Foto di riferimento (rendering) ----
+let pendingPhotoEventId = null;
+
+function triggerPhotoUpload(evId){
+  pendingPhotoEventId = evId;
+  document.getElementById('photoInput').click();
+}
+
+function resizeImageFile(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lettura file fallita'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Immagine non valida'));
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          if(width > height){ height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePhotoSelected(input){
+  const file = input.files[0];
+  const evId = pendingPhotoEventId;
+  input.value = '';
+  if(!file || !evId) return;
+  try{
+    const dataUrl = await resizeImageFile(file, 1000, 0.72);
+    const ev = events.find(e => e.id === evId);
+    ev.foto = ev.foto || [];
+    ev.foto.push({ id: uid(), data: dataUrl });
+    persist(); render();
+    setTimeout(() => document.getElementById('card-' + evId).classList.add('open'), 0);
+  }catch(e){
+    alert('Non sono riuscito a caricare questa foto. Riprova con un\u2019altra immagine.');
+  }
+}
+
+function removePhoto(evId, photoId){
+  const ev = events.find(e => e.id === evId);
+  ev.foto = (ev.foto || []).filter(f => f.id !== photoId);
+  persist(); render();
+  setTimeout(() => document.getElementById('card-' + evId).classList.add('open'), 0);
+}
+
+function openPhotoViewer(dataUrl){
+  document.getElementById('photoViewerImg').src = dataUrl;
+  document.getElementById('photoViewerOverlay').classList.add('show');
+}
+function closePhotoViewer(){
+  document.getElementById('photoViewerOverlay').classList.remove('show');
 }
 
 function openModal(id){
