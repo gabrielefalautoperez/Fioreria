@@ -132,9 +132,14 @@
     overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;
   }
   .drawer-overlay.show .drawer{transform:translateX(0);}
-  .drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-  .drawer-head h2{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--green-deep);margin:0;}
-  .drawer-close{background:none;border:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:4px 8px;}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;}
+  .drawer-head h2{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--green-deep);margin:0;flex:1;}
+  .drawer-back{
+    display:flex;align-items:center;gap:4px;background:none;border:none;
+    color:var(--green-deep);font-size:13px;font-family:'Work Sans',sans-serif;cursor:pointer;
+    padding:6px 4px 6px 0;flex-shrink:0;
+  }
+  .drawer-close{background:none;border:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:4px 8px;flex-shrink:0;}
   .drawer-section{border-top:1px solid var(--line);padding:16px 0;}
   .drawer-section h3{font-size:13px;text-transform:uppercase;letter-spacing:0.6px;color:var(--green-deep);margin:0 0 8px;}
   .drawer-hint{font-size:12px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
@@ -260,14 +265,17 @@
   .modal h2{
     font-family:'Cormorant Garamond',serif;color:var(--green-deep);margin:0 0 18px;font-size:23px;
   }
-  .field{margin-bottom:13px;}
+  .modal-head{flex-shrink:0;}
+  .modal-body{min-width:0;}
+  .field{margin-bottom:13px;min-width:0;}
   .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;font-weight:500;}
   .field input,.field select,.field textarea{
-    width:100%;border:1px solid var(--line);padding:9px 11px;border-radius:4px;
+    width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);padding:9px 11px;border-radius:4px;
     font-family:'Work Sans',sans-serif;font-size:13.5px;background:var(--ivory);
   }
   .field textarea{resize:vertical;min-height:56px;}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0;}
+  .two-col > .field{min-width:0;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
   .btn-secondary{
     background:none;border:1px solid var(--line);color:var(--ink-soft);
@@ -323,9 +331,26 @@
     .view-toggle{width:100%;}
     .view-btn{flex:1;text-align:center;}
     .two-col{grid-template-columns:1fr;gap:0;}
-    .modal{padding:20px 18px 18px;border-radius:0;}
-    .overlay{padding:0;align-items:stretch;}
-    .overlay .modal{min-height:100%;}
+    .modal{padding:0;border-radius:0;}
+    .overlay{padding:0;align-items:stretch;overflow-y:hidden;}
+    .overlay .modal{
+      min-height:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;
+    }
+    .modal-head{
+      padding:calc(18px + env(safe-area-inset-top)) 18px 14px;
+      border-bottom:1px solid var(--line);
+    }
+    .modal-head h2{margin:0;font-size:21px;}
+    .modal-body{
+      flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+      padding:16px 18px;
+    }
+    .modal-actions{
+      flex-shrink:0;margin:0;gap:10px;
+      padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+      border-top:1px solid var(--line);background:var(--paper);
+    }
+    .modal-actions .btn-secondary,.modal-actions .btn-primary{flex:1;text-align:center;padding:13px 18px;}
     .event-head{padding:12px;gap:10px;flex-wrap:wrap;}
     .type-tag{order:1;}
     .head-main{order:2;flex-basis:100%;}
@@ -341,7 +366,9 @@
     .alert-tag{flex-wrap:wrap;}
     .card-actions{flex-wrap:wrap;}
     .card-actions .small-btn{flex:1;text-align:center;}
-    .drawer{width:100%;max-width:100%;}
+    .drawer{width:100%;max-width:100%;padding-top:calc(22px + env(safe-area-inset-top));}
+    .drawer-close{display:none;}
+    .drawer-head h2{text-align:right;}
     .today-row{flex-wrap:wrap;}
     .reminder-row{flex-wrap:wrap;}
   }
@@ -399,6 +426,10 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerOnOverlay(event)">
   <div class="drawer" id="drawer">
     <div class="drawer-head">
+      <button class="drawer-back" onclick="closeDrawer()" aria-label="Indietro">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>Indietro</span>
+      </button>
       <h2>Impostazioni</h2>
       <button class="drawer-close" onclick="closeDrawer()" aria-label="Chiudi">&times;</button>
     </div>
@@ -445,7 +476,10 @@
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2 id="modalTitle">Nuovo evento</h2>
+    <div class="modal-head">
+      <h2 id="modalTitle">Nuovo evento</h2>
+    </div>
+    <div class="modal-body">
     <div class="field"><label>Nome cliente</label><input id="f-cliente" type="text" placeholder="Es. Sara e Marco"></div>
     <div class="two-col">
       <div class="field"><label>Tipo evento</label>
@@ -472,6 +506,7 @@
       <div class="field"><label>Acconto ricevuto (€)</label><input id="f-acconto" type="number" min="0" step="0.01" placeholder="Es. 200"></div>
     </div>
     <div class="field"><label>Note / richieste del cliente</label><textarea id="f-note" placeholder="Es. colori sui toni del rosa antico, niente gigli..."></textarea></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Annulla</button>
       <button class="btn-primary" onclick="saveEvent()">Salva evento</button>
@@ -747,11 +782,36 @@ async function autoRequestNotifications(){
   checkNotifications();
 }
 
+// Traccia quale pannello è aperto per collegarlo al tasto/gesto "indietro"
+// del telefono, così si comporta come un'app vera invece di uscire dalla pagina.
+let currentPanel = null;
+
+function pushPanelState(name){
+  currentPanel = name;
+  history.pushState({ panel: name }, '');
+}
+
+function popPanelIfOpen(){
+  if(currentPanel === 'drawer'){
+    document.getElementById('drawerOverlay').classList.remove('show');
+  } else if(currentPanel === 'modal'){
+    document.getElementById('overlay').classList.remove('show');
+  }
+  currentPanel = null;
+}
+
+window.addEventListener('popstate', popPanelIfOpen);
+
 function openDrawer(){
   document.getElementById('drawerOverlay').classList.add('show');
+  pushPanelState('drawer');
 }
 function closeDrawer(){
   document.getElementById('drawerOverlay').classList.remove('show');
+  if(currentPanel === 'drawer'){
+    currentPanel = null;
+    history.back();
+  }
 }
 function closeDrawerOnOverlay(e){
   if(e.target.id === 'drawerOverlay') closeDrawer();
@@ -1134,10 +1194,15 @@ function openModal(id){
     document.getElementById('f-note').value = '';
   }
   document.getElementById('overlay').classList.add('show');
+  pushPanelState('modal');
 }
 
 function closeModal(){
   document.getElementById('overlay').classList.remove('show');
+  if(currentPanel === 'modal'){
+    currentPanel = null;
+    history.back();
+  }
 }
 
 function saveEvent(){
