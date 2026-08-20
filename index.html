@@ -641,6 +641,8 @@ function setLocalUpdatedAt(ts){
 const FB_KEY = 'firebase-config';
 let fbConfig = { url: '' };
 
+const DEFAULT_FB_URL = 'https://fioreria-39618-default-rtdb.firebaseio.com';
+
 function loadFbConfig(){
   try{
     const raw = localDB.get(FB_KEY);
@@ -648,6 +650,7 @@ function loadFbConfig(){
   }catch(e){
     fbConfig = { url: '' };
   }
+  if(!fbConfig.url) fbConfig.url = DEFAULT_FB_URL;
   document.getElementById('fb-url').value = fbConfig.url || '';
 }
 
