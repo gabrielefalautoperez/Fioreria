@@ -112,23 +112,34 @@
   .reminder-row{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:13.5px;color:#4A3A16;}
   .reminder-row b{color:#3A2C10;}
 
-  .notif-bar{
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;
-    font-size:12.5px;color:var(--ink-soft);
+  .header-actions{display:flex;align-items:center;gap:10px;}
+  .icon-btn{
+    width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+    background:var(--paper);color:var(--green-deep);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:background .15s;
   }
-  .notif-btn{
-    border:1px solid var(--green-deep);background:var(--paper);color:var(--green-deep);
-    font-size:12.5px;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:'Work Sans',sans-serif;
+  .icon-btn:hover{background:var(--green-pale);}
+
+  .drawer-overlay{
+    display:none;position:fixed;inset:0;background:rgba(40,35,25,0.45);
+    z-index:60;justify-content:flex-end;
   }
-  .notif-btn.on{background:var(--green-deep);color:var(--ivory);}
-  .notif-btn:disabled{opacity:0.5;cursor:not-allowed;}
-  .wa-panel{margin-bottom:16px;}
-  .wa-panel #waFields{
-    background:var(--paper);border:1px solid var(--line);border-radius:6px;
-    padding:14px 16px;margin-top:8px;
+  .drawer-overlay.show{display:flex;}
+  .drawer{
+    width:380px;max-width:88vw;height:100%;background:var(--ivory);
+    box-shadow:-4px 0 24px rgba(0,0,0,0.18);padding:22px 20px 40px;
+    overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;
   }
-  .wa-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;}
-  @media (max-width: 640px){ .wa-row{grid-template-columns:1fr;} }
+  .drawer-overlay.show .drawer{transform:translateX(0);}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .drawer-head h2{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--green-deep);margin:0;}
+  .drawer-close{background:none;border:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:4px 8px;}
+  .drawer-section{border-top:1px solid var(--line);padding:16px 0;}
+  .drawer-section h3{font-size:13px;text-transform:uppercase;letter-spacing:0.6px;color:var(--green-deep);margin:0 0 8px;}
+  .drawer-hint{font-size:12px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
+  .drawer-btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .drawer-btn-row .small-btn{margin:0;}
 
   .toolbar{
     display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;
@@ -330,13 +341,7 @@
     .alert-tag{flex-wrap:wrap;}
     .card-actions{flex-wrap:wrap;}
     .card-actions .small-btn{flex:1;text-align:center;}
-    .notif-bar{gap:8px;}
-    .notif-bar .notif-btn{flex:1 1 auto;text-align:center;}
-    .notif-bar #notifStatus,
-    .notif-bar #storageNotice{flex-basis:100%;font-size:11.5px;}
-    .wa-panel #waFields,
-    .wa-panel #fbFields{padding:12px;}
-    .wa-panel .small-btn{width:100%;margin:0 0 8px;box-sizing:border-box;}
+    .drawer{width:100%;max-width:100%;}
     .today-row{flex-wrap:wrap;}
     .reminder-row{flex-wrap:wrap;}
   }
@@ -360,44 +365,15 @@
         <p>Agenda eventi — matrimoni, battesimi, confettate e comunioni</p>
       </div>
     </div>
-    <button class="btn-new" onclick="openModal()">+ Nuovo evento</button>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openDrawer()" title="Impostazioni" aria-label="Impostazioni">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+      <button class="btn-new" onclick="openModal()">+ Nuovo evento</button>
+    </div>
   </div>
 
   <div class="alerts" id="alerts"></div>
-
-  <div class="notif-bar">
-    <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">Attiva notifiche</button>
-    <span id="notifStatus"></span>
-  </div>
-  <div class="notif-bar">
-    <span id="storageNotice"></span>
-    <button class="notif-btn" onclick="exportBackup()">Esporta backup</button>
-    <button class="notif-btn" onclick="document.getElementById('importFile').click()">Importa backup</button>
-    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackup(this)">
-  </div>
-  <div class="wa-panel">
-    <button class="notif-btn" onclick="toggleWaPanel()" id="waToggleBtn">Notifiche WhatsApp</button>
-    <div id="waFields" style="display:none">
-      <div class="wa-row">
-        <div class="field"><label>Numero WhatsApp (con prefisso, es. 39...)</label><input type="text" id="wa-numero" placeholder="393277850098"></div>
-        <div class="field"><label>ApiKey CallMeBot</label><input type="text" id="wa-apikey" placeholder="Es. 123456"></div>
-      </div>
-      <button class="small-btn edit-btn" onclick="saveWaConfig()">Salva</button>
-      <button class="small-btn" onclick="sendTestWhatsApp()">Invia messaggio di prova</button>
-      <button class="small-btn" onclick="testReminderNow()">Testa promemoria (evento più vicino)</button>
-      <p id="waStatus" style="font-size:12px;color:var(--ink-soft);margin-top:6px;"></p>
-    </div>
-  </div>
-
-  <div class="wa-panel">
-    <button class="notif-btn" onclick="toggleFbPanel()" id="fbToggleBtn">Sincronizzazione cloud (Firebase)</button>
-    <div id="fbFields" style="display:none">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Incolla lo <b>stesso URL</b> su ogni dispositivo (PC, telefono...) con cui usi l'agenda: solo così i dati restano sincronizzati ovunque.</p>
-      <div class="field"><label>URL Database Firebase</label><input type="text" id="fb-url" placeholder="https://tuo-progetto-default-rtdb.europe-west1.firebasedatabase.app"></div>
-      <button class="small-btn edit-btn" onclick="saveFbConfig()">Salva e sincronizza</button>
-      <p id="fbStatus" style="font-size:12px;color:var(--ink-soft);margin-top:6px;"></p>
-    </div>
-  </div>
 
   <div class="view-toggle">
     <button class="view-btn active" id="vbtn-lista" onclick="setView('lista')">Vista lista</button>
@@ -417,6 +393,53 @@
       <button onclick="shiftMonth(1)">&#8250;</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerOnOverlay(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h2>Impostazioni</h2>
+      <button class="drawer-close" onclick="closeDrawer()" aria-label="Chiudi">&times;</button>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Notifiche</h3>
+      <p class="drawer-hint" id="notifStatus">Le notifiche del browser partono automaticamente, se le consenti quando richiesto.</p>
+    </div>
+
+    <div class="drawer-section">
+      <h3>WhatsApp</h3>
+      <p class="drawer-hint">Ricevi su WhatsApp il promemoria a 9 giorni dall'evento e il giorno della consegna.</p>
+      <div class="field"><label>Numero (con prefisso, es. 39...)</label><input type="text" id="wa-numero" placeholder="393277850098"></div>
+      <div class="field"><label>ApiKey CallMeBot</label><input type="text" id="wa-apikey" placeholder="Es. 123456"></div>
+      <div class="drawer-btn-row">
+        <button class="small-btn edit-btn" onclick="saveWaConfig()">Salva</button>
+        <button class="small-btn" onclick="sendTestWhatsApp()">Messaggio di prova</button>
+        <button class="small-btn" onclick="testReminderNow()">Testa promemoria</button>
+      </div>
+      <p class="drawer-hint" id="waStatus"></p>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Sincronizzazione cloud</h3>
+      <p class="drawer-hint">Incolla lo <b>stesso URL</b> su ogni dispositivo (PC, telefono...): solo così i dati restano sincronizzati ovunque.</p>
+      <div class="field"><label>URL Database Firebase</label><input type="text" id="fb-url" placeholder="https://tuo-progetto-default-rtdb.europe-west1.firebasedatabase.app"></div>
+      <div class="drawer-btn-row">
+        <button class="small-btn edit-btn" onclick="saveFbConfig()">Salva e sincronizza</button>
+      </div>
+      <p class="drawer-hint" id="fbStatus"></p>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Backup dati</h3>
+      <p class="drawer-hint" id="storageNotice"></p>
+      <div class="drawer-btn-row">
+        <button class="small-btn" onclick="exportBackup()">Esporta backup</button>
+        <button class="small-btn" onclick="document.getElementById('importFile').click()">Importa backup</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackup(this)">
+    </div>
   </div>
 </div>
 
@@ -546,11 +569,6 @@ function loadFbConfig(){
   document.getElementById('fb-url').value = fbConfig.url || '';
 }
 
-function toggleFbPanel(){
-  const el = document.getElementById('fbFields');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
 function updateFbStatus(text){
   const el = document.getElementById('fbStatus');
   if(el) el.textContent = text;
@@ -640,7 +658,7 @@ function loadEvents(){
     notifiedSet = new Set();
   }
   updateStorageNotice();
-  updateNotifButton();
+  autoRequestNotifications();
   loadWaConfig();
   loadFbConfig();
   render();
@@ -704,35 +722,39 @@ function importBackup(fileInput){
 }
 
 function updateNotifButton(){
-  const btn = document.getElementById('notifBtn');
   const status = document.getElementById('notifStatus');
+  if(!status) return;
   if(!('Notification' in window)){
-    btn.disabled = true;
-    btn.textContent = 'Notifiche non supportate';
+    status.textContent = 'Le notifiche non sono supportate su questo browser.';
     return;
   }
   if(Notification.permission === 'granted'){
-    btn.textContent = 'Notifiche attive';
-    btn.classList.add('on');
-    status.textContent = '';
+    status.textContent = 'Notifiche attive: arriveranno automaticamente mentre tieni questa pagina aperta.';
   } else if(Notification.permission === 'denied'){
-    btn.textContent = 'Notifiche bloccate';
-    btn.disabled = true;
     status.textContent = 'Le hai bloccate dalle impostazioni del browser: riattivale da lì per riceverle.';
   } else {
-    btn.textContent = 'Attiva notifiche';
-    btn.classList.remove('on');
-    status.textContent = 'Ti avviseranno finché tieni questa pagina aperta nel browser.';
+    status.textContent = 'Verranno attivate automaticamente al primo utilizzo.';
   }
 }
 
-async function toggleNotifications(){
-  if(!('Notification' in window)) return;
+// Richiede il permesso in automatico, senza bisogno di alcun click.
+async function autoRequestNotifications(){
+  if(!('Notification' in window)){ updateNotifButton(); return; }
   if(Notification.permission === 'default'){
-    await Notification.requestPermission();
+    try{ await Notification.requestPermission(); }catch(e){}
   }
   updateNotifButton();
   checkNotifications();
+}
+
+function openDrawer(){
+  document.getElementById('drawerOverlay').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').classList.remove('show');
+}
+function closeDrawerOnOverlay(e){
+  if(e.target.id === 'drawerOverlay') closeDrawer();
 }
 
 function markNotified(key){
@@ -762,14 +784,10 @@ function loadWaConfig(){
   document.getElementById('wa-apikey').value = waConfig.apikey || '';
 }
 
-function toggleWaPanel(){
-  const el = document.getElementById('waFields');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
 function saveWaConfig(){
   waConfig = {
     numero: document.getElementById('wa-numero').value.trim(),
+
     apikey: document.getElementById('wa-apikey').value.trim(),
   };
   localDB.set(WA_KEY, JSON.stringify(waConfig));
