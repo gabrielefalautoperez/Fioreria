@@ -287,6 +287,20 @@
   }
   .loading{text-align:center;color:var(--ink-soft);padding:40px;font-size:13px;}
 
+  .catalog-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 3px rgba(43,38,32,0.06);
+  }
+  .catalog-icon{
+    width:44px;height:44px;border-radius:8px;background:var(--rose-pale);color:#8A3F49;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;
+  }
+  .catalog-info{flex:1;min-width:0;}
+  .catalog-info .cat-title{font-weight:600;font-size:14.5px;margin:0;}
+  .catalog-info .cat-desc{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0;}
+  .catalog-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+
   .budget-row{
     display:flex;flex-wrap:wrap;gap:16px;background:var(--gold-pale);border-radius:4px;
     padding:10px 14px;margin-bottom:14px;font-size:13px;
@@ -367,6 +381,9 @@
     .card-actions{flex-wrap:wrap;}
     .card-actions .small-btn{flex:1;text-align:center;}
     .drawer{width:100%;max-width:100%;padding-top:calc(22px + env(safe-area-inset-top));}
+    .catalog-card{flex-wrap:wrap;}
+    .catalog-actions{width:100%;}
+    .catalog-actions .small-btn{flex:1;text-align:center;}
     .drawer-close{display:none;}
     .drawer-head h2{text-align:right;}
     .today-row{flex-wrap:wrap;}
@@ -405,6 +422,7 @@
   <div class="view-toggle">
     <button class="view-btn active" id="vbtn-lista" onclick="setView('lista')">Vista lista</button>
     <button class="view-btn" id="vbtn-calendario" onclick="setView('calendario')">Vista calendario</button>
+    <button class="view-btn" id="vbtn-catalogo" onclick="setView('catalogo')">Catalogo</button>
   </div>
 
   <div id="listaWrap">
@@ -420,6 +438,12 @@
       <button onclick="shiftMonth(1)">&#8250;</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div id="catalogoWrap" style="display:none;">
+    <p class="drawer-hint" style="margin-bottom:14px;">Qui trovi i cataloghi PDF da mostrare o inviare ai clienti.</p>
+    <button class="add-item-btn" onclick="openCatalogModal()" style="margin-bottom:16px;">+ Aggiungi catalogo</button>
+    <div id="catalogList"></div>
   </div>
 </div>
 
@@ -514,14 +538,35 @@
   </div>
 </div>
 
+<div class="overlay" id="catalogOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="catalogModalTitle">Nuovo catalogo</h2>
+    </div>
+    <div class="modal-body">
+      <p class="drawer-hint">Carica prima il file PDF nella cartella <code>catalogo/</code> del tuo repository su GitHub (accanto a index.html), poi indica qui il nome del file.</p>
+      <div class="field"><label>Titolo</label><input id="cat-titolo" type="text" placeholder="Es. Catalogo Matrimoni Primavera 2026"></div>
+      <div class="field"><label>Descrizione (facoltativa)</label><textarea id="cat-descrizione" placeholder="Es. Composizioni e allestimenti per cerimonia e ricevimento"></textarea></div>
+      <div class="field"><label>Nome file PDF</label><input id="cat-file" type="text" placeholder="Es. catalogo/matrimoni-primavera-2026.pdf"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeCatalogModal()">Annulla</button>
+      <button class="btn-primary" onclick="saveCatalog()">Salva catalogo</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let events = [];
+let catalogs = [];
 let editingId = null;
 let activeFilter = 'tutti';
 let currentView = 'lista';
 let calDate = new Date(); calDate.setDate(1);
 const TYPE_LABELS = {matrimonio:'Matrimonio',battesimo:'Battesimo',confettata:'Confettata',comunione:'Comunione',altro:'Altro'};
 const STORAGE_KEY = 'eventi-fioreria';
+const CATALOG_KEY = 'cataloghi-fioreria';
+let editingCatalogId = null;
 const NOTIF_KEY = 'notifiche-inviate';
 let notifiedSet = new Set();
 
@@ -535,8 +580,10 @@ function setView(v){
   currentView = v;
   document.getElementById('listaWrap').style.display = v === 'lista' ? 'block' : 'none';
   document.getElementById('calendarioWrap').style.display = v === 'calendario' ? 'block' : 'none';
+  document.getElementById('catalogoWrap').style.display = v === 'catalogo' ? 'block' : 'none';
   document.getElementById('vbtn-lista').classList.toggle('active', v === 'lista');
   document.getElementById('vbtn-calendario').classList.toggle('active', v === 'calendario');
+  document.getElementById('vbtn-catalogo').classList.toggle('active', v === 'catalogo');
   render();
 }
 
@@ -628,7 +675,7 @@ async function syncFromCloud(){
 
     if(!cloud || !Array.isArray(cloud.events)){
       // Nessun dato nel cloud: se ho dati in locale, li carico io come base.
-      if(events.length > 0) await pushToCloud(true);
+      if(events.length > 0 || catalogs.length > 0) await pushToCloud(true);
       updateFbStatus('Cloud inizializzato con i dati di questo dispositivo.');
       return;
     }
@@ -636,8 +683,10 @@ async function syncFromCloud(){
     const cloudTs = cloud.updatedAt || 0;
     if(cloudTs > localTs){
       events = migrateEvents(cloud.events);
+      catalogs = Array.isArray(cloud.catalogs) ? cloud.catalogs : [];
       setLocalUpdatedAt(cloudTs);
       localDB.set(STORAGE_KEY, JSON.stringify(events));
+      localDB.set(CATALOG_KEY, JSON.stringify(catalogs));
       render();
       updateFbStatus('Dati aggiornati dal cloud \u2014 ' + new Date(cloudTs).toLocaleString('it-IT'));
     } else if(localTs > cloudTs){
@@ -657,7 +706,7 @@ function pushToCloud(silent){
   return fetch(fbBase() + '/dati.json', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ events, updatedAt: ts }),
+    body: JSON.stringify({ events, catalogs, updatedAt: ts }),
   }).then(res => {
     if(!silent){
       updateFbStatus(res.ok
@@ -687,6 +736,12 @@ function loadEvents(){
     events = [];
   }
   try{
+    const rawCat = localDB.get(CATALOG_KEY);
+    catalogs = rawCat ? JSON.parse(rawCat) : [];
+  }catch(e){
+    catalogs = [];
+  }
+  try{
     const raw2 = localDB.get(NOTIF_KEY);
     notifiedSet = raw2 ? new Set(JSON.parse(raw2)) : new Set();
   }catch(e){
@@ -705,6 +760,7 @@ function persist(){
   const ts = Date.now();
   try{
     localDB.set(STORAGE_KEY, JSON.stringify(events));
+    localDB.set(CATALOG_KEY, JSON.stringify(catalogs));
     setLocalUpdatedAt(ts);
   }catch(e){
     console.error('Errore salvataggio', e);
@@ -796,6 +852,8 @@ function popPanelIfOpen(){
     document.getElementById('drawerOverlay').classList.remove('show');
   } else if(currentPanel === 'modal'){
     document.getElementById('overlay').classList.remove('show');
+  } else if(currentPanel === 'catalogModal'){
+    document.getElementById('catalogOverlay').classList.remove('show');
   }
   currentPanel = null;
 }
@@ -1030,6 +1088,8 @@ function render(){
   renderAlerts();
   if(currentView === 'calendario'){
     renderCalendar();
+  } else if(currentView === 'catalogo'){
+    renderCatalogList();
   } else {
     renderList();
   }
@@ -1251,6 +1311,85 @@ function deleteEvent(id){
   if(!confirm('Eliminare questo evento e il relativo ordine?')) return;
   events = events.filter(e => e.id !== id);
   persist(); render();
+}
+
+// ---- Catalogo PDF ----
+function renderCatalogList(){
+  const box = document.getElementById('catalogList');
+  if(!box) return;
+  if(catalogs.length === 0){
+    box.innerHTML = `<div class="empty"><div class="big">Nessun catalogo caricato</div><div>Aggiungine uno con "+ Aggiungi catalogo"</div></div>`;
+    return;
+  }
+  box.innerHTML = catalogs.map(c => `
+    <div class="catalog-card">
+      <div class="catalog-icon">PDF</div>
+      <div class="catalog-info">
+        <p class="cat-title">${escapeHtml(c.titolo)}</p>
+        ${c.descrizione ? `<p class="cat-desc">${escapeHtml(c.descrizione)}</p>` : ''}
+      </div>
+      <div class="catalog-actions">
+        <a class="small-btn" href="${escapeHtml(c.file)}" target="_blank" rel="noopener">Apri</a>
+        <a class="small-btn" href="${escapeHtml(c.file)}" download>Scarica</a>
+        <button class="small-btn edit-btn" onclick="openCatalogModal('${c.id}')">Modifica</button>
+        <button class="small-btn del-btn" onclick="deleteCatalog('${c.id}')">Elimina</button>
+      </div>
+    </div>`).join('');
+}
+
+function openCatalogModal(id){
+  editingCatalogId = id || null;
+  document.getElementById('catalogModalTitle').textContent = id ? 'Modifica catalogo' : 'Nuovo catalogo';
+  if(id){
+    const c = catalogs.find(x => x.id === id);
+    document.getElementById('cat-titolo').value = c.titolo || '';
+    document.getElementById('cat-descrizione').value = c.descrizione || '';
+    document.getElementById('cat-file').value = c.file || '';
+  } else {
+    document.getElementById('cat-titolo').value = '';
+    document.getElementById('cat-descrizione').value = '';
+    document.getElementById('cat-file').value = '';
+  }
+  document.getElementById('catalogOverlay').classList.add('show');
+  pushPanelState('catalogModal');
+}
+
+function closeCatalogModal(){
+  document.getElementById('catalogOverlay').classList.remove('show');
+  if(currentPanel === 'catalogModal'){
+    currentPanel = null;
+    history.back();
+  }
+}
+
+function saveCatalog(){
+  const titolo = document.getElementById('cat-titolo').value.trim();
+  const file = document.getElementById('cat-file').value.trim();
+  if(!titolo || !file){
+    alert('Inserisci almeno il titolo e il nome del file PDF.');
+    return;
+  }
+  const payload = {
+    titolo,
+    descrizione: document.getElementById('cat-descrizione').value.trim(),
+    file,
+  };
+  if(editingCatalogId){
+    const c = catalogs.find(x => x.id === editingCatalogId);
+    Object.assign(c, payload);
+  } else {
+    catalogs.push({ id: uid(), ...payload });
+  }
+  persist();
+  closeCatalogModal();
+  renderCatalogList();
+}
+
+function deleteCatalog(id){
+  if(!confirm('Rimuovere questo catalogo dall\u2019elenco? (il file PDF resterà su GitHub, va cancellato lì separatamente)')) return;
+  catalogs = catalogs.filter(c => c.id !== id);
+  persist();
+  renderCatalogList();
 }
 
 loadEvents();
