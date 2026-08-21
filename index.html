@@ -1619,7 +1619,7 @@ function renderAccounting(){
   });
   if(activeAccFilter === 'da_incassare') list = list.filter(x => x.saldo > 0);
   if(activeAccFilter === 'saldati') list = list.filter(x => x.saldo <= 0);
-  list.sort((a, b) => b.saldo - a.saldo || new Date(a.ev.data) - new Date(b.ev.data));
+  list.sort((a, b) => new Date(a.ev.data) - new Date(b.ev.data));
 
   const box = document.getElementById('accList');
   if(list.length === 0){
