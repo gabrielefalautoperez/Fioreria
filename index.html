@@ -183,6 +183,8 @@
   .type-battesimo{background:var(--green-pale);color:var(--green-deep);}
   .type-confettata{background:var(--gold-pale);color:#7A5B1E;}
   .type-comunione{background:#E6ECF3;color:#3D5A80;}
+  .type-laurea{background:#EAE4F3;color:#5B3D8A;}
+  .type-confetti{background:#FDE7EF;color:#A03B63;}
   .type-altro{background:#EDEAE4;color:#5A5348;}
 
   .head-main{flex:1;min-width:0;}
@@ -538,6 +540,8 @@
           <option value="battesimo">Battesimo</option>
           <option value="confettata">Confettata</option>
           <option value="comunione">Comunione</option>
+          <option value="laurea">Laurea</option>
+          <option value="confetti">Confetti</option>
           <option value="altro">Altro</option>
         </select>
       </div>
@@ -595,7 +599,7 @@ let editingId = null;
 let activeFilter = 'tutti';
 let currentView = 'lista';
 let calDate = new Date(); calDate.setDate(1);
-const TYPE_LABELS = {matrimonio:'Matrimonio',battesimo:'Battesimo',confettata:'Confettata',comunione:'Comunione',altro:'Altro'};
+const TYPE_LABELS = {matrimonio:'Matrimonio',battesimo:'Battesimo',confettata:'Confettata',comunione:'Comunione',laurea:'Laurea',confetti:'Confetti',altro:'Altro'};
 const STORAGE_KEY = 'eventi-fioreria';
 const CATALOG_KEY = 'cataloghi-fioreria';
 let editingCatalogId = null;
@@ -1052,7 +1056,7 @@ function urgencyClass(ev){
 }
 
 function renderFilters(){
-  const cats = ['tutti','matrimonio','battesimo','confettata','comunione','altro'];
+  const cats = ['tutti','matrimonio','battesimo','confettata','comunione','laurea','confetti','altro'];
   const box = document.getElementById('filters');
   box.innerHTML = cats.map(c => {
     const label = c === 'tutti' ? 'Tutti' : TYPE_LABELS[c];
