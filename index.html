@@ -329,6 +329,38 @@
   .photo-viewer-overlay.show{display:flex;}
   .photo-viewer-overlay img{max-width:100%;max-height:100%;border-radius:6px;object-fit:contain;}
 
+  .acc-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  .acc-card{
+    border-radius:10px;padding:16px 18px;box-shadow:0 1px 3px rgba(43,38,32,0.06);
+  }
+  .acc-card .acc-lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;margin:0 0 6px;}
+  .acc-card .acc-val{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:26px;margin:0;}
+  .acc-card .acc-sub{font-size:11px;opacity:0.8;margin:4px 0 0;}
+  .acc-card.tot{background:var(--green-deep);color:var(--ivory);}
+  .acc-card.tot .acc-lbl,.acc-card.tot .acc-sub{color:var(--ivory);}
+  .acc-card.paid{background:var(--ok-pale);color:#2E4A36;}
+  .acc-card.due{background:var(--rose-pale);color:#7A2D3A;}
+
+  .acc-row{
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 3px rgba(43,38,32,0.05);
+  }
+  .acc-row .acc-info{flex:1;min-width:0;}
+  .acc-row .acc-cliente{font-weight:600;font-size:14.5px;margin:0;}
+  .acc-row .acc-meta{font-size:12px;color:var(--ink-soft);margin:3px 0 0;}
+  .acc-row .acc-amounts{text-align:right;flex-shrink:0;}
+  .acc-row .acc-saldo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:18px;}
+  .acc-row .acc-saldo.zero{color:var(--ok);}
+  .acc-row .acc-saldo.due{color:var(--danger);}
+  .acc-row .acc-detail{font-size:11px;color:var(--ink-soft);}
+  .acc-badge{
+    font-size:10px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;
+    padding:3px 9px;border-radius:10px;display:inline-block;margin-top:4px;
+  }
+  .acc-badge.paid{background:var(--ok-pale);color:var(--ok);}
+  .acc-badge.due{background:var(--danger-pale);color:var(--danger);}
+
   .budget-row{
     display:flex;flex-wrap:wrap;gap:16px;background:var(--gold-pale);border-radius:4px;
     padding:10px 14px;margin-bottom:14px;font-size:13px;
@@ -410,6 +442,9 @@
     .card-actions .small-btn{flex:1;text-align:center;}
     .drawer{width:100%;max-width:100%;padding-top:calc(22px + env(safe-area-inset-top));}
     .catalog-card{flex-wrap:wrap;}
+    .acc-summary{grid-template-columns:1fr;gap:10px;}
+    .acc-row{flex-wrap:wrap;}
+    .acc-row .acc-amounts{text-align:left;width:100%;}
     .catalog-actions{width:100%;}
     .catalog-actions .small-btn{flex:1;text-align:center;}
     .drawer-close{display:none;}
@@ -451,6 +486,7 @@
     <button class="view-btn active" id="vbtn-lista" onclick="setView('lista')">Vista lista</button>
     <button class="view-btn" id="vbtn-calendario" onclick="setView('calendario')">Vista calendario</button>
     <button class="view-btn" id="vbtn-catalogo" onclick="setView('catalogo')">Catalogo</button>
+    <button class="view-btn" id="vbtn-contabilita" onclick="setView('contabilita')">Contabilità</button>
   </div>
 
   <div id="listaWrap">
@@ -472,6 +508,12 @@
     <p class="drawer-hint" style="margin-bottom:14px;">Qui trovi i cataloghi PDF da mostrare o inviare ai clienti.</p>
     <button class="add-item-btn" onclick="openCatalogModal()" style="margin-bottom:16px;">+ Aggiungi catalogo</button>
     <div id="catalogList"></div>
+  </div>
+
+  <div id="contabilitaWrap" style="display:none;">
+    <div class="acc-summary" id="accSummary"></div>
+    <div class="toolbar" id="accFilters"></div>
+    <div id="accList"></div>
   </div>
 </div>
 
@@ -597,6 +639,7 @@ let events = [];
 let catalogs = [];
 let editingId = null;
 let activeFilter = 'tutti';
+let activeAccFilter = 'tutti';
 let currentView = 'lista';
 let calDate = new Date(); calDate.setDate(1);
 const TYPE_LABELS = {matrimonio:'Matrimonio',battesimo:'Battesimo',confettata:'Confettata',comunione:'Comunione',laurea:'Laurea',confetti:'Confetti',altro:'Altro'};
@@ -617,9 +660,11 @@ function setView(v){
   document.getElementById('listaWrap').style.display = v === 'lista' ? 'block' : 'none';
   document.getElementById('calendarioWrap').style.display = v === 'calendario' ? 'block' : 'none';
   document.getElementById('catalogoWrap').style.display = v === 'catalogo' ? 'block' : 'none';
+  document.getElementById('contabilitaWrap').style.display = v === 'contabilita' ? 'block' : 'none';
   document.getElementById('vbtn-lista').classList.toggle('active', v === 'lista');
   document.getElementById('vbtn-calendario').classList.toggle('active', v === 'calendario');
   document.getElementById('vbtn-catalogo').classList.toggle('active', v === 'catalogo');
+  document.getElementById('vbtn-contabilita').classList.toggle('active', v === 'contabilita');
   render();
 }
 
@@ -1129,6 +1174,8 @@ function render(){
     renderCalendar();
   } else if(currentView === 'catalogo'){
     renderCatalogList();
+  } else if(currentView === 'contabilita'){
+    renderAccounting();
   } else {
     renderList();
   }
@@ -1429,6 +1476,85 @@ function deleteEvent(id){
 }
 
 // ---- Catalogo PDF ----
+// ---- Contabilità ----
+function setAccFilter(f){
+  activeAccFilter = f;
+  renderAccounting();
+}
+
+function formatMoneyShort(n){
+  return n.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+}
+
+function renderAccounting(){
+  const withBudget = events.filter(ev => parseFloat(ev.totale) > 0);
+
+  let totPreventivato = 0, totIncassato = 0, totDaIncassare = 0, nDaIncassare = 0;
+  withBudget.forEach(ev => {
+    const totale = parseFloat(ev.totale) || 0;
+    const acconto = parseFloat(ev.acconto) || 0;
+    const saldo = Math.max(0, totale - acconto);
+    totPreventivato += totale;
+    totIncassato += acconto;
+    if(saldo > 0){ totDaIncassare += saldo; nDaIncassare++; }
+  });
+
+  document.getElementById('accSummary').innerHTML = `
+    <div class="acc-card tot">
+      <p class="acc-lbl">Totale preventivato</p>
+      <p class="acc-val">${formatMoneyShort(totPreventivato)}</p>
+      <p class="acc-sub">${withBudget.length} event${withBudget.length === 1 ? 'o' : 'i'} con importo</p>
+    </div>
+    <div class="acc-card paid">
+      <p class="acc-lbl">Già incassato</p>
+      <p class="acc-val">${formatMoneyShort(totIncassato)}</p>
+      <p class="acc-sub">acconti ricevuti</p>
+    </div>
+    <div class="acc-card due">
+      <p class="acc-lbl">Da incassare</p>
+      <p class="acc-val">${formatMoneyShort(totDaIncassare)}</p>
+      <p class="acc-sub">${nDaIncassare} client${nDaIncassare === 1 ? 'e' : 'i'} da sollecitare</p>
+    </div>`;
+
+  const filterBox = document.getElementById('accFilters');
+  const accCats = [['tutti','Tutti'],['da_incassare','Da incassare'],['saldati','Saldati']];
+  filterBox.innerHTML = accCats.map(([key, label]) =>
+    `<button class="chip ${activeAccFilter === key ? 'active' : ''}" onclick="setAccFilter('${key}')">${label}</button>`
+  ).join('');
+
+  let list = withBudget.map(ev => {
+    const totale = parseFloat(ev.totale) || 0;
+    const acconto = parseFloat(ev.acconto) || 0;
+    const saldo = totale - acconto;
+    return { ev, totale, acconto, saldo };
+  });
+  if(activeAccFilter === 'da_incassare') list = list.filter(x => x.saldo > 0);
+  if(activeAccFilter === 'saldati') list = list.filter(x => x.saldo <= 0);
+  list.sort((a, b) => b.saldo - a.saldo || new Date(a.ev.data) - new Date(b.ev.data));
+
+  const box = document.getElementById('accList');
+  if(list.length === 0){
+    box.innerHTML = `<div class="empty"><div class="big">Nessun dato da mostrare</div><div>Aggiungi un totale preventivo agli eventi per vederli qui</div></div>`;
+    return;
+  }
+  box.innerHTML = list.map(({ev, totale, acconto, saldo}) => {
+    const dateFmt = new Date(ev.data + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'short', year:'numeric'});
+    const isPaid = saldo <= 0;
+    return `
+    <div class="acc-row">
+      <div class="acc-info">
+        <p class="acc-cliente">${escapeHtml(ev.cliente)}</p>
+        <p class="acc-meta">${TYPE_LABELS[ev.tipo]} · ${dateFmt}</p>
+        <span class="acc-badge ${isPaid ? 'paid' : 'due'}">${isPaid ? 'Saldato' : 'Da incassare'}</span>
+      </div>
+      <div class="acc-amounts">
+        <div class="acc-saldo ${isPaid ? 'zero' : 'due'}">${formatMoneyShort(Math.max(0, saldo))}</div>
+        <div class="acc-detail">Totale ${formatMoneyShort(totale)} · Acconto ${formatMoneyShort(acconto)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderCatalogList(){
   const box = document.getElementById('catalogList');
   if(!box) return;
