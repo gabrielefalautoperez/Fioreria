@@ -86,6 +86,14 @@
     font-size:16px;color:var(--danger);white-space:nowrap;
   }
   .alert-tag.warn .days{color:var(--warn);}
+  .alert-done-btn{
+    border:1px solid var(--ok);background:var(--ok-pale);color:var(--ok);
+    font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:14px;
+    cursor:pointer;font-family:'Work Sans',sans-serif;white-space:nowrap;flex-shrink:0;
+  }
+  .alert-done-btn:hover{background:var(--ok);color:var(--ivory);}
+  .alert-done-btn.add{border-color:var(--green-deep);background:var(--green-pale);color:var(--green-deep);}
+  .alert-done-btn.add:hover{background:var(--green-deep);color:var(--ivory);}
   .no-alerts{color:var(--ink-soft);font-size:13px;font-style:italic;}
 
   .today-banner{
@@ -464,6 +472,8 @@
     .cal-dow{font-size:9px;}
     .budget-row{gap:12px;padding:10px 12px;}
     .alert-tag{flex-wrap:wrap;}
+    .alert-tag .days{margin-left:0;}
+    .alert-done-btn{width:100%;text-align:center;padding:9px 12px;}
     .card-actions{flex-wrap:wrap;}
     .card-actions .small-btn{flex:1;text-align:center;}
     .drawer{width:100%;max-width:100%;padding-top:calc(22px + env(safe-area-inset-top));}
@@ -1126,6 +1136,27 @@ function orderStatus(ev){
   return ev.ordini.every(o => o.stato === 'ricevuto') ? 'completo' : 'incompleto';
 }
 
+function markOrderDone(evId){
+  const ev = events.find(e => e.id === evId);
+  if(!ev.ordini || ev.ordini.length === 0) return;
+  ev.ordini.forEach(o => { o.stato = 'ricevuto'; });
+  persist();
+  render();
+}
+
+// Porta alla scheda dell'evento in Vista lista e la apre, così l'utente
+// può inserire i primi articoli dell'ordine invece di "finto-completarlo".
+function goToEventOrder(evId){
+  setView('lista');
+  setTimeout(() => {
+    const card = document.getElementById('card-' + evId);
+    if(card){
+      card.classList.add('open');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 60);
+}
+
 function needsOrderAttention(ev){
   return orderStatus(ev) !== 'completo';
 }
@@ -1194,10 +1225,15 @@ function renderAlerts(){
     html += upcoming.map(x => {
       const cls = x.d <= 3 ? '' : 'warn';
       const dayLabel = x.d === 1 ? '1 giorno' : x.d + ' giorni';
-      const statusLabel = orderStatus(x.ev) === 'vuoto' ? 'ordine non ancora iniziato' : 'ordine non completo';
+      const isEmpty = orderStatus(x.ev) === 'vuoto';
+      const statusLabel = isEmpty ? 'ordine non ancora iniziato' : 'ordine non completo';
+      const actionBtn = isEmpty
+        ? `<button class="alert-done-btn add" onclick="goToEventOrder('${x.ev.id}')">+ Aggiungi articoli</button>`
+        : `<button class="alert-done-btn" onclick="markOrderDone('${x.ev.id}')">&#10003; Ordine evaso</button>`;
       return `<div class="alert-tag ${cls}">
         <span><b>${escapeHtml(x.ev.cliente)}</b> — ${TYPE_LABELS[x.ev.tipo]}, ${statusLabel}</span>
         <span class="days">${dayLabel}</span>
+        ${actionBtn}
       </div>`;
     }).join('');
   }
